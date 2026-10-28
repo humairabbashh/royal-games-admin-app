@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Royal Games — Admin Panel</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#ffffff;color:#111111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:100vh}
+  header{background:#ffffff;border-bottom:3px solid #111111;padding:20px 22px;position:sticky;top:0;z-index:5}
+  header h1{font-size:30px;color:#000000}
+  header p{font-size:16px;color:#444444;margin-top:4px}
+  nav{display:flex;gap:10px;overflow-x:auto;padding:14px 18px;background:#ffffff;border-bottom:1px solid #e5e7eb;position:sticky;top:104px;z-index:5}
+  nav button{flex:0 0 auto;border:1px solid #d1d5db;background:#ffffff;color:#111111;padding:11px 18px;border-radius:999px;font-size:17px;font-weight:700;cursor:pointer}
+  nav button.on{background:#111111;color:#ffffff;border-color:#111111}
+  main{padding:18px;max-width:900px;margin:0 auto}
+  section{display:none}
+  section.on{display:block}
+  .card{background:#ffffff;border:1px solid #e5e7eb;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .card h2{font-size:21px;margin-bottom:12px;color:#000000}
+  .card h3{font-size:19px;margin:14px 0 10px;color:#000000}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:560px){.grid{grid-template-columns:1fr}}
+  .stat{background:#ffffff;color:#111111;border:1px solid #e5e7eb;border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+  .stat b{font-size:30px;display:block;color:#000000}
+  .stat span{font-size:15px;color:#555555;font-weight:700}
+  label{font-size:16px;font-weight:700;color:#111111;display:block;margin:12px 0 5px}
+  input,select,textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d1d5db;background:#ffffff;color:#111111;font-size:17px}
+  textarea{min-height:64px}
+  button.btn{background:#111111;color:#ffffff;border:0;padding:13px 20px;border-radius:12px;font-size:17px;font-weight:800;cursor:pointer}
+  button.btn.small{padding:9px 14px;font-size:15px;border-radius:10px}
+  button.ghost{background:#f3f4f6;color:#111111;border:1px solid #e5e7eb;padding:10px 14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  button.danger{background:#b42318;color:#fff;border:0;padding:10px 14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  div.row{border-bottom-color:#e5e7eb !important}
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  th,td{padding:11px 8px;border-bottom:1px solid #e5e7eb;text-align:left}
+  th{color:#555555;font-size:14px}
+  tr.click{cursor:pointer}
+  tr.click:hover{background:#f3f4f6}
+  .muted{color:#555555;font-size:15px}
+  .empty{background:#f9fafb;border:1px dashed #d1d5db;border-radius:14px;padding:20px;text-align:center;color:#555555;font-size:15px}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:800}
+  .ok{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}.grey{background:#e5e7eb;color:#111111}
+  #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111111;color:#ffffff;padding:12px 20px;border-radius:999px;font-weight:800;font-size:16px;display:none;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  #gate{position:fixed;inset:0;background:rgba(255,255,255,.92);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+  #gate .box{background:#ffffff;border:2px solid #111111;border-radius:20px;padding:28px;width:100%;max-width:360px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+  #gate h2{color:#000000;margin-bottom:10px;font-size:24px}
+  #gate input{text-align:center;font-size:24px;letter-spacing:8px}
+  .warnbox{background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;font-size:15px;line-height:1.6;margin-top:12px;color:#111111}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>👑 Royal Games — Admin Panel</h1>
+  <p>Users, earning, withdrawals, videos, coupons aur settings — sab kuch yahan se</p>
+</header>
+<nav id="nav">
+  <button data-sec="dashboard" class="on">Dashboard</button>
+  <button data-sec="users">Users</button>
+  <button data-sec="settings">Settings</button>
+  <button data-sec="gameshome">Games &amp; Home</button>
+  <button data-sec="appsec">App</button>
+  <button data-sec="videos">Videos</button>
+  <button data-sec="withdrawals">Withdrawals</button>
+  <button data-sec="coupons">Coupons</button>
+</nav>
+<main>
+  <div class="topbar">
+    <span class="muted" id="dbstate">Database se jur raha hai…</span>
+    <button class="ghost" onclick="refreshAll()">↻ Refresh</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="sec-dashboard" class="on">
+    <div class="grid" id="stats"></div>
+    <div class="card">
+      <h2>Recent Withdrawals</h2>
+      <div id="dashW"></div>
+    </div>
+  </section>
+
+  <!-- USERS -->
+  <section id="sec-users">
+    <div class="card">
+      <h2>Users</h2>
+      <input id="userSearch" placeholder="Naam ya username se dhoondo…" oninput="renderUsers()">
+      <div id="userTable" style="margin-top:10px"></div>
+    </div>
+    <div class="card" id="userDetail" style="display:none"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="sec-settings">
+    <div class="card">
+      <h2>Game Settings</h2>
+      <p class="muted">Ye values game app par lagoo hongi jab game is database se jur jayega. Save dabate hi foran update ho jati hain.</p>
+      <div class="grid">
+        <div><label>Coin Rate — Rs 50 ke badle kitne coins</label><input id="s_coinRate" type="number"></div>
+        <div><label>Min Withdrawal (Rs)</label><input id="s_minWithdraw" type="number"></div>
+        <div><label>Daily Cap (coins / din)</label><input id="s_dailyCap" type="number"></div>
+        <div><label>Ad Reward (coins)</label><input id="s_adReward" type="number"></div>
+        <div><label>Video Reward (coins)</label><input id="s_videoReward" type="number"></div>
+        <div><label>Ludo Entry (Rs)</label><input id="s_ludoEntry" type="number"></div>
+        <div><label>Ludo Win (Rs wallet mein)</label><input id="s_ludoWin" type="number"></div>
+        <div><label>Free Chips / din</label><input id="s_freeChipsDaily" type="number"></div>
+      </div>
+      <label>Spin Prizes — Coins (comma se alag, masalan 5,10,15,20)</label>
+      <input id="s_spinCoins">
+      <label>Spin Prizes — Chips (comma se alag)</label>
+      <input id="s_spinChips">
+      <label>Spin Prizes — Rs (comma se alag)</label>
+      <input id="s_spinPkr">
+      <label><input id="s_maintenance" type="checkbox" style="width:auto"> Maintenance Mode ON (game band dikhega)</label>
+      <label>Maintenance Message</label>
+      <textarea id="s_maintenanceMsg"></textarea>
+      <div style="margin-top:14px"><button class="btn" onclick="saveSettings()">💾 Settings Save Karo</button></div>
+      <div class="warnbox">⚠️ <b>PIN wali baat yaad rakho:</b> Admin PIN is waqt sirf ek screen lock hai. Database abhi test mode mein khula hai, is liye jo koi bhi database ka address janta ho wo PIN dekh sakta hai. Asli hifazat ye hai ke admin panel ka link sirf tumhare paas rahe — kisi ko mat dena. Baad mein sakht rules lagane par ye masla khatam ho jayega.</div>
+      <h3 style="margin-top:18px">Admin PIN Badlo</h3>
+      <label>Purana PIN</label><input id="p_old" type="password" maxlength="4" inputmode="numeric" placeholder="••••">
+      <label>Naya PIN (4 hindse)</label><input id="p_new" type="password" maxlength="4" inputmode="numeric" placeholder="••••">
+      <div style="margin-top:12px"><button class="btn small" onclick="changePin()">PIN Badlo</button></div>
+    </div>
+  </section>
+
+  <!-- GAMES & HOME -->
+  <section id="sec-gameshome">
+    <div class="card">
+      <h2>Home Screen Order</h2>
+      <p class="muted">Upar/neeche dabao — yehi tarteeb game ke home screen par nazar aayegi. Save foran ho jata hai.</p>
+      <div id="ghHome"></div>
+    </div>
+    <div class="card">
+      <h2>Games — On/Off aur Order</h2>
+      <p class="muted">Tick hatane se wo game users ko nazar nahi aayega. Order wahi rahega jo yahan set hai.</p>
+      <div id="ghGames"></div>
+    </div>
+    <div class="card">
+      <h2>Bottom Nav Order</h2>
+      <p class="muted">Neeche wali nav bar ki tarteeb yahan se badlo.</p>
+      <div id="ghNav"></div>
+    </div>
+    <div class="card">
+      <h2>VIP Pass</h2>
+      <div class="grid">
+        <div><label>Price (Rs)</label><input id="v_priceRs" type="number"></div>
+        <div><label>Chips Grant</label><input id="v_chipsGrant" type="number"></div>
+      </div>
+      <label><input id="v_enabled" type="checkbox" style="width:auto"> VIP Pass ON</label>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveVip()">💾 VIP Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Daily Spin</h2>
+      <div class="grid">
+        <div><label>Free Spins / Din</label><input id="sp_free" type="number"></div>
+        <div><label>Free Spin Dobara Kitne Ghante Baad</label><input id="sp_interval" type="number"></div>
+      </div>
+      <p class="muted">Spin ke inaam (coins/chips/Rs) Settings section mein hain — wahi rehte hain, yahan duplicate nahi.</p>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveSpin()">💾 Spin Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Check-in Rewards (30 Din)</h2>
+      <label>Rozana reward (comma se alag, din 1 se din 30 tak)</label>
+      <input id="ci_rewards">
+      <div style="margin-top:12px"><button class="btn small" onclick="saveCheckin()">💾 Check-in Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Mines Hint Hunt</h2>
+      <div class="grid">
+        <div><label>Total Boxes</label><input id="mn_boxes" type="number"></div>
+        <div><label>Mines Ki Tadad</label><input id="mn_mines" type="number"></div>
+        <div><label>Opens Allowed</label><input id="mn_opens" type="number"></div>
+        <div><label>Win Reward (coins)</label><input id="mn_win" type="number"></div>
+        <div><label>Fail Par Energy Loss</label><input id="mn_loss" type="number"></div>
+        <div><label>Max Energy</label><input id="mn_maxEn" type="number"></div>
+        <div><label>Chips Per +1 Energy</label><input id="mn_chipsPer" type="number"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveMines()">💾 Mines Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Ludo</h2>
+      <div class="grid">
+        <div><label>Free Table Win (coins)</label><input id="lu_freeWin" type="number"></div>
+        <div><label>Rs Table Entry (Rs)</label><input id="lu_entry" type="number"></div>
+        <div><label>Rs Table Win (Rs wallet)</label><input id="lu_win" type="number"></div>
+      </div>
+      <h3>Skins (naam + cost badlo)</h3>
+      <div id="luSkins"></div>
+      <p class="muted" style="margin-top:10px">🤖 <b>Bot difficulty:</b> bots strong hain aur ye game ke code mein fixed hai — admin se change nahi hota. Is liye yahan iska koi button nahi hai.</p>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveLudo()">💾 Ludo Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Missions</h2>
+      <p class="muted">Har mission ka title aur reward yahan se badlo. Save dabane par sab missions ek saath update hongi.</p>
+      <div id="msList"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn small" onclick="saveMissions()">💾 Missions Save Karo</button>
+        <button class="ghost" onclick="addMissionRow()">＋ Mission Add Karo</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Invite Bonus</h2>
+      <div class="grid">
+        <div><label>Referrer Bonus (coins)</label><input id="iv_referrer" type="number"></div>
+        <div><label>Referee Bonus (coins)</label><input id="iv_referee" type="number"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveInvite()">💾 Invite Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Wallet Methods</h2>
+      <label>Methods (comma se alag)</label>
+      <input id="wa_methods" placeholder="JazzCash,Easypaisa">
+      <div style="margin-top:12px"><button class="btn small" onclick="saveWallet()">💾 Wallet Save Karo</button></div>
+    </div>
+    <div class="card">
+      <h2>Ads (sirf on/off)</h2>
+      <label><input id="ad_banner" type="checkbox" style="width:auto"> Banner Ad ON</label>
+      <label><input id="ad_rewarded" type="checkbox" style="width:auto"> Rewarded Ad ON</label>
+      <label>Interstitial Har Kitne Second Baad</label>
+      <input id="ad_interval" type="number">
+      <p class="muted" style="margin-top:8px">Note: AdMob ki IDs app ke code mein hoti hain — wo yahan se change nahi hoti, sirf on/off aur time yahan se badalta hai.</p>
+      <div style="margin-top:12px"><button class="btn small" onclick="saveAds()">💾 Ads Save Karo</button></div>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="sec-appsec">
+    <div class="card">
+      <h2>App Info</h2>
+      <label>App Name</label><input id="ap_name">
+      <label>Contact Email</label><input id="ap_email">
+      <label>Announcement (game ke home par dikhega; khaali ho to kuch nahi dikhega)</label>
+      <textarea id="ap_announcement"></textarea>
+      <p class="muted">Maintenance on/off ka switch Settings section mein hai — yahan duplicate nahi rakha gaya taake do jagah se takrao na ho.</p>
+      <div style="margin-top:14px"><button class="btn" onclick="saveAppSec()">💾 App Info Save Karo</button></div>
+    </div>
+  </section>
+
+  <!-- VIDEOS -->
+  <section id="sec-videos">
+    <div class="card">
+      <h2 id="videoFormTitle">Nayi Video Add Karo</h2>
+      <input type="hidden" id="v_editId">
+      <label>Video Title</label><input id="v_title" placeholder="Masalan: Video 2">
+      <label>YouTube Link ya Video ID</label><input id="v_url" placeholder="https://www.youtube.com/watch?v=… ya sirf ID">
+      <label>Reward (coins)</label><input id="v_reward" type="number" value="50">
+      <div class="row" style="margin-top:14px">
+        <button class="btn" onclick="saveVideo()">💾 Video Save Karo</button>
+        <button class="ghost" onclick="resetVideoForm()">Cancel</button>
+      </div>
+      <p class="muted" id="v_hint" style="margin-top:8px"></p>
+    </div>
+    <div class="card"><h2>Videos List</h2><div id="videoList"></div></div>
+  </section>
+
+  <!-- WITHDRAWALS -->
+  <section id="sec-withdrawals">
+    <div class="card">
+      <h2>Withdrawals</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button class="ghost" onclick="setWFilter('all')">Sab</button>
+        <button class="ghost" onclick="setWFilter('pending')">Pending</button>
+        <button class="ghost" onclick="setWFilter('approved')">Approved</button>
+        <button class="ghost" onclick="setWFilter('rejected')">Rejected</button>
+      </div>
+      <div id="wList"></div>
+      <p class="muted" style="margin-top:10px">Note: Approve/Reject sirf status badalta hai. Asli paisa is app se kabhi nahi bheja jata — payment tum khud JazzCash/Easypaisa se karte ho.</p>
+    </div>
+  </section>
+
+  <!-- COUPONS -->
+  <section id="sec-coupons">
+    <div class="card">
+      <h2>Naya Coupon Banao</h2>
+      <label>Coupon Code (masalan: EID100)</label><input id="c_code" placeholder="Bare haroof mein likho">
+      <label>Kis cheez ka</label>
+      <select id="c_type"><option value="coins">Coins</option><option value="chips">Chips</option><option value="pkr">Rs (wallet)</option></select>
+      <label>Value (kitna milega)</label><input id="c_value" type="number">
+      <label>Max Uses (kitne log use kar saken)</label><input id="c_maxUses" type="number" value="100">
+      <div style="margin-top:14px"><button class="btn" onclick="saveCoupon()">🎟️ Coupon Banao</button></div>
+    </div>
+    <div class="card"><h2>Coupons List</h2><div id="cList"></div></div>
+  </section>
+</main>
+
+<div id="gate">
+  <div class="box">
+    <h2>👑 Royal Games Admin</h2>
+    <p class="muted" id="gateText">PIN daalo</p>
+    <input id="gatePin" type="password" maxlength="4" inputmode="numeric" placeholder="••••" style="margin:14px 0">
+    <button class="btn" style="width:100%" onclick="gateSubmit()">Unlock</button>
+    <p class="muted" id="gateErr" style="margin-top:10px;color:#991b1b"></p>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var BASE = "https://royal-games-admin-default-rtdb.asia-southeast1.firebasedatabase.app";
+var S = { users:{}, settings:null, videos:{}, withdrawals:{}, coupons:{} };
+var wFilter = "all", gateMode = "enter";
+
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function toast(m){ var t=document.getElementById("toast"); t.textContent=m; t.style.display="block"; setTimeout(function(){t.style.display="none";},2600); }
+function num(v,d){ v=parseInt(v,10); return isNaN(v)?(d||0):v; }
+function listOf(o){ return o ? Object.keys(o).map(function(k){ var v=o[k]||{}; v._id=k; return v; }) : []; }
+function fmtDate(ts){ if(!ts) return "—"; var d=new Date(ts); return isNaN(d.getTime())?"—":d.toLocaleDateString()+" "+d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+
+async function jget(path){
+  try{ var r=await fetch(BASE+"/"+path+".json"); if(!r.ok) return null; return await r.json(); }
+  catch(e){ return null; }
+}
+async function jput(path, val){
+  var r=await fetch(BASE+"/"+path+".json", {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
+  return r.ok;
+}
+async function jpatch(path, val){
+  var r=await fetch(BASE+"/"+path+".json", {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(val)});
+  return r.ok;
+}
+async function jdel(path){
+  var r=await fetch(BASE+"/"+path+".json", {method:"DELETE"});
+  return r.ok;
+}
+
+var DEFAULT_SETTINGS = { coinRate:1000, minWithdraw:300, dailyCap:40, adReward:10, videoReward:50,
+  ludoEntry:50, ludoWin:70, spinPrizes:{coins:[5,10,15,20], chips:[50,100], pkr:[1,2]},
+  freeChipsDaily:200, maintenance:false, maintenanceMsg:"Game thodi der ke liye band hai. Thodi der baad dobara try karo.",
+  homeOrder:["vip","shop","spin","checkin","games","missionsRow","freeChipsRow","inviteRow","walletRow"],
+  gamesOrder:["ludo","mines","tictactoe","snake","memory","2048"],
+  gamesEnabled:{ludo:true,mines:true,tictactoe:true,snake:true,memory:true,"2048":true},
+  navOrder:["home","missions","freechips","videos","invite","wallet"],
+  vip:{priceRs:500,chipsGrant:1000,enabled:true},
+  spin:{freeSpinsPerDay:1,freeIntervalHours:24},
+  checkin:{dayRewards:[20,25,30,35,40,50,60,70,80,90,100,110,120,150,175,200,225,250,275,300,350,400,450,500,550,600,700,800,900,1000]},
+  mines:{boxes:30,minesCount:5,opensAllowed:5,winReward:10,failEnergyLoss:1,maxEnergy:10,chipsPerEnergy:50},
+  ludo:{freeWinCoins:20,entryRs:50,winRs:70,skins:[
+    {id:"classic",name:"Classic",costChips:0},
+    {id:"chip",name:"Chip",costChips:100},
+    {id:"gold",name:"Gold",costChips:250},
+    {id:"silver",name:"Silver",costChips:150},
+    {id:"ruby",name:"Ruby",costChips:350},
+    {id:"diamond",name:"Diamond",costChips:500},
+    {id:"rsroyal",name:"Rs Royal",costRs:5}]},
+  missions:[
+    {id:"m1",title:"Pehla Spin karo",reward:10,rewardType:"coins"},
+    {id:"m2",title:"Ludo ka 1 game khelo",reward:10,rewardType:"coins"},
+    {id:"m3",title:"Mines mein hint dhoondo",reward:10,rewardType:"coins"},
+    {id:"m4",title:"3 ads dekho",reward:30,rewardType:"coins"},
+    {id:"m5",title:"7 din lagatar check-in karo",reward:100,rewardType:"coins"},
+    {id:"m6",title:"3 doston ko invite karo",reward:50,rewardType:"coins"},
+    {id:"m7",title:"Snake mein 50+ score banao",reward:20,rewardType:"coins"},
+    {id:"m8",title:"Memory Match jeeto",reward:15,rewardType:"coins"},
+    {id:"m9",title:"2048 mein 512 banao",reward:20,rewardType:"coins"}],
+  invite:{referrerBonus:200,refereeBonus:50},
+  wallet:{methods:["JazzCash","Easypaisa"]},
+  ads:{bannerEnabled:true,interstitialIntervalSec:120,rewardedEnabled:true},
+  app:{appName:"Royal Games – Free Coins",contactEmail:"Humairabbashk@gmail.com",announcement:""} };
+
+function ytId(input){
+  input=(input||"").trim();
+  if(!input) return "";
+  var m=input.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{6,})/);
+  if(m) return m[1];
+  if(/^[A-Za-z0-9_-]{6,}$/.test(input)) return input;
+  return "";
+}
+
+/* ---------- PIN GATE ---------- */
+async function initGate(){
+  var pin = await jget("admin/pin");
+  if(pin===null || pin===undefined || pin===""){
+    gateMode="set";
+    document.getElementById("gateText").textContent = "Pehli dafa hai — apna 4-digit PIN banao. Ye PIN har dafa admin kholne par lagega.";
+  } else {
+    gateMode="enter";
+    document.getElementById("gateText").textContent = "Admin PIN daalo";
+  }
+  document.getElementById("gatePin").focus();
+}
+async function gateSubmit(){
+  var v=document.getElementById("gatePin").value.trim();
+  var err=document.getElementById("gateErr");
+  if(!/^\d{4}$/.test(v)){ err.textContent="4 hindse (digits) ka PIN daalo."; return; }
+  if(gateMode==="set"){
+    if(await jput("admin/pin", v)){
+      sessionStorage.setItem("rg_admin_ok","1");
+      document.getElementById("gate").style.display="none";
+      toast("PIN set ho gaya");
+      afterUnlock();
+    } else err.textContent="Save nahi hua, dobara try karo.";
+  } else {
+    var pin = await jget("admin/pin");
+    if(String(pin)===v){
+      sessionStorage.setItem("rg_admin_ok","1");
+      document.getElementById("gate").style.display="none";
+      afterUnlock();
+    } else err.textContent="Ghalat PIN. Dobara try karo.";
+  }
+}
+document.getElementById("gatePin").addEventListener("keydown", function(e){ if(e.key==="Enter") gateSubmit(); });
+
+/* ---------- LOAD & SEED ---------- */
+async function afterUnlock(){
+  var st = await jget("settings");
+  if(st===null){ await jput("settings", DEFAULT_SETTINGS); st = DEFAULT_SETTINGS; }
+  else {
+    var miss={};
+    Object.keys(DEFAULT_SETTINGS).forEach(function(k){ if(st[k]===null||st[k]===undefined) miss[k]=DEFAULT_SETTINGS[k]; });
+    if(Object.keys(miss).length){ await jpatch("settings", miss); }
+  }
+  var vs = await jget("videos");
+  if(vs===null){
+    await jput("videos", { video1:{ title:"Video 1", youtubeId:"sT8AXNebG8Y", reward:50, active:true, createdAt:Date.now() } });
+  }
+  await refreshAll();
+}
+async function refreshAll(){
+  document.getElementById("dbstate").textContent="Data load ho raha hai…";
+  var u = await jget("users");
+  var s = await jget("settings");
+  var v = await jget("videos");
+  var w = await jget("withdrawals");
+  var c = await jget("coupons");
+  S.users = u||{}; S.settings = s||DEFAULT_SETTINGS; S.videos = v||{}; S.withdrawals = w||{}; S.coupons = c||{};
+  document.getElementById("dbstate").textContent="Database connected ✓";
+  renderDashboard(); renderUsers(); renderSettings(); renderGamesHome(); renderAppSec(); renderVideos(); renderWithdrawals(); renderCoupons();
+}
+function refreshSection(){ refreshAll(); }
+
+/* ---------- NAV ---------- */
+document.querySelectorAll("#nav button").forEach(function(b){
+  b.addEventListener("click", function(){
+    document.querySelectorAll("#nav button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    document.querySelectorAll("main section").forEach(function(s){s.classList.remove("on");});
+    document.getElementById("sec-"+b.dataset.sec).classList.add("on");
+  });
+});
+
+/* ---------- DASHBOARD ---------- */
+function renderDashboard(){
+  var users=listOf(S.users);
+  var totalCoins=0, totalPkr=0;
+  users.forEach(function(u){ totalCoins+=num(u.coins,0); totalPkr+=num(u.pkr,0); });
+  var wds=listOf(S.withdrawals);
+  var pend=wds.filter(function(w){return w.status==="pending";});
+  var pendAmt=0; pend.forEach(function(w){pendAmt+=num(w.amountRs,0);});
+  var paid=0; wds.filter(function(w){return w.status==="approved";}).forEach(function(w){paid+=num(w.amountRs,0);});
+  document.getElementById("stats").innerHTML =
+    '<div class="stat"><span>Total Users</span><b>'+users.length+'</b></div>'+
+    '<div class="stat"><span>Total Coins (sab users)</span><b>'+totalCoins+'</b></div>'+
+    '<div class="stat"><span>Total Rs Wallets</span><b>Rs '+totalPkr+'</b></div>'+
+    '<div class="stat"><span>Pending Withdrawals</span><b>'+pend.length+' (Rs '+pendAmt+')</b></div>'+
+    '<div class="stat"><span>Total Paid (approved)</span><b>Rs '+paid+'</b></div>'+
+    '<div class="stat"><span>Active Videos</span><b>'+listOf(S.videos).filter(function(v){return v.active!==false;}).length+'</b></div>';
+  var recent=wds.slice().sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);}).slice(0,10);
+  document.getElementById("dashW").innerHTML = recent.length ? recent.map(function(w){
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:8px 0"><span><b>'+esc(w.username||w.uid)+'</b> — Rs '+esc(w.amountRs)+' ('+esc(w.method||"")+')</span><span class="badge '+(w.status==="pending"?"warn":w.status==="approved"?"ok":"bad")+'">'+esc(w.status)+'</span></div>';
+  }).join("") : '<div class="empty">Abhi koi withdrawal nahi hai.</div>';
+}
+
+/* ---------- USERS ---------- */
+function renderUsers(){
+  var q=(document.getElementById("userSearch").value||"").toLowerCase();
+  var users=listOf(S.users).filter(function(u){
+    return !q || (String(u.name||"").toLowerCase().indexOf(q)>=0) || (String(u.username||"").toLowerCase().indexOf(q)>=0);
+  });
+  if(!users.length){ document.getElementById("userTable").innerHTML='<div class="empty">Abhi koi user data nahi hai. Jab game is database se jur jayega, users yahan nazar aayenge.</div>'; return; }
+  var html='<table><tr><th>Naam / Username</th><th>Coins</th><th>Chips</th><th>Rs</th><th>Status</th></tr>';
+  users.forEach(function(u){
+    var ref=u.refCode||u.referralCode||u.myCode||"";
+    html+='<tr class="click" onclick="openUser(\''+u._id+'\')"><td><b>'+esc(u.name||"—")+'</b><br><span class="muted">'+esc(u.username||"")+'</span>'+(ref?'<br><span class="muted">Ref: '+esc(ref)+'</span>':"")+'</td><td>'+num(u.coins,0)+'</td><td>'+num(u.chips,0)+'</td><td>'+num(u.pkr,0)+'</td><td><span class="badge '+(u.status==="blocked"?"bad":"ok")+'">'+esc(u.status||"active")+'</span></td></tr>';
+  });
+  document.getElementById("userTable").innerHTML=html+'</table>';
+}
+function openUser(uid){
+  var u=S.users[uid]; if(!u) return;
+  var wds=listOf(S.withdrawals).filter(function(w){return w.uid===uid;});
+  var wHtml = wds.length ? wds.map(function(w){
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:6px 0"><span>Rs '+esc(w.amountRs)+' — '+esc(w.method||"")+' ('+esc(w.number||"")+')</span><span class="badge '+(w.status==="pending"?"warn":w.status==="approved"?"ok":"bad")+'">'+esc(w.status)+'</span></div>';
+  }).join("") : '<p class="muted">Is user ki koi withdrawal nahi.</p>';
+  var d=document.getElementById("userDetail");
+  d.style.display="block";
+  d.innerHTML =
+    '<h2>User Detail — '+esc(u.name||uid)+'</h2>'+
+    '<label>Username</label><input id="u_username" value="'+esc(u.username||"")+'">'+
+    '<label>Password (naya password yahan likho, phir Save dabao)</label><input id="u_password" type="text" value="'+esc(u.password||"")+'" placeholder="Naya password">'+
+    '<div class="grid"><div><label>Coins</label><input id="u_coins" type="number" value="'+num(u.coins,0)+'"></div>'+
+    '<div><label>Chips</label><input id="u_chips" type="number" value="'+num(u.chips,0)+'"></div>'+
+    '<div><label>Rs Wallet</label><input id="u_pkr" type="number" value="'+num(u.pkr,0)+'"></div>'+
+    '<div><label>Referrals</label><input id="u_referrals" type="number" value="'+num(u.referrals,0)+'"></div></div>'+
+    '<p class="muted">Referral Code: '+esc(u.refCode||u.referralCode||u.myCode||"—")+' · Total Earned: '+num(u.totalEarned,0)+'</p>'+
+    '<p class="muted">Ludo Wins: '+(u.ludoWins==null?"—":num(u.ludoWins,0))+' · Mines Wins: '+(u.minesWins==null?"—":num(u.minesWins,0))+' · Joined: '+fmtDate(u.createdAt)+' · Last Seen: '+fmtDate(u.lastSeen)+'</p>'+
+    (u.lastAdjust?'<p class="muted">Aakhri change: '+esc(u.lastAdjust)+'</p>':"")+
+    '<h3>Balance Adjust (jama / nikaalo)</h3>'+
+    '<div class="row"><select id="u_adjType" style="flex:1"><option value="coins">Coins</option><option value="chips">Chips</option><option value="pkr">Rs</option></select>'+
+    '<input id="u_adjAmt" type="number" placeholder="+ ya - raqam" style="flex:1">'+
+    '<input id="u_adjReason" placeholder="Wajah (masalan: bonus)" style="flex:2"></div>'+
+    '<div class="row" style="margin-top:12px"><button class="btn small" onclick="saveUser(\''+uid+'\')">💾 Save User</button>'+
+    '<button class="btn small" onclick="applyAdjust(\''+uid+'\')">Balance Adjust Karo</button>'+
+    '<button class="'+(u.status==="blocked"?"btn small":"danger")+'" onclick="toggleBlock(\''+uid+'\')">'+(u.status==="blocked"?"Unblock Karo":"Block Karo")+'</button></div>'+
+    '<h3>Is User ki Withdrawals</h3>'+wHtml;
+  d.scrollIntoView({behavior:"smooth"});
+}
+async function saveUser(uid){
+  var patch={ username:document.getElementById("u_username").value.trim(),
+    password:document.getElementById("u_password").value,
+    coins:num(document.getElementById("u_coins").value,0),
+    chips:num(document.getElementById("u_chips").value,0),
+    pkr:num(document.getElementById("u_pkr").value,0),
+    referrals:num(document.getElementById("u_referrals").value,0) };
+  if(await jpatch("users/"+uid, patch)){ toast("User save ho gaya ✓"); refreshAll(); }
+  else toast("Save nahi hua, dobara try karo");
+}
+async function applyAdjust(uid){
+  var type=document.getElementById("u_adjType").value;
+  var amt=num(document.getElementById("u_adjAmt").value,0);
+  var reason=document.getElementById("u_adjReason").value.trim()||"Admin adjust";
+  if(!amt){ toast("Raqam daalo (0 nahi)"); return; }
+  var u=S.users[uid]; if(!u) return;
+  var patch={}; patch[type]=num(u[type],0)+amt;
+  patch.lastAdjust=(amt>0?"+":"")+amt+" "+type+" — "+reason+" ("+new Date().toLocaleDateString()+")";
+  if(await jpatch("users/"+uid, patch)){ toast("Balance update ho gaya ✓"); refreshAll(); }
+  else toast("Update nahi hua");
+}
+async function toggleBlock(uid){
+  var u=S.users[uid]; if(!u) return;
+  var ns = u.status==="blocked" ? "active" : "blocked";
+  if(await jpatch("users/"+uid, {status:ns})){ toast(ns==="blocked"?"User block ho gaya":"User unblock ho gaya"); refreshAll(); }
+}
+
+/* ---------- SETTINGS ---------- */
+function renderSettings(){
+  var s=S.settings||DEFAULT_SETTINGS;
+  document.getElementById("s_coinRate").value=num(s.coinRate,1000);
+  document.getElementById("s_minWithdraw").value=num(s.minWithdraw,300);
+  document.getElementById("s_dailyCap").value=num(s.dailyCap,40);
+  document.getElementById("s_adReward").value=num(s.adReward,10);
+  document.getElementById("s_videoReward").value=num(s.videoReward,50);
+  document.getElementById("s_ludoEntry").value=num(s.ludoEntry,50);
+  document.getElementById("s_ludoWin").value=num(s.ludoWin,70);
+  document.getElementById("s_freeChipsDaily").value=num(s.freeChipsDaily,200);
+  var sp=s.spinPrizes||{};
+  document.getElementById("s_spinCoins").value=(sp.coins||[5,10,15,20]).join(",");
+  document.getElementById("s_spinChips").value=(sp.chips||[50,100]).join(",");
+  document.getElementById("s_spinPkr").value=(sp.pkr||[1,2]).join(",");
+  document.getElementById("s_maintenance").checked=!!s.maintenance;
+  document.getElementById("s_maintenanceMsg").value=s.maintenanceMsg||"";
+}
+function parseList(str, fallback){
+  var arr=str.split(",").map(function(x){return num(x.trim(),NaN);}).filter(function(x){return !isNaN(x);});
+  return arr.length?arr:fallback;
+}
+async function saveSettings(){
+  var val={ coinRate:num(document.getElementById("s_coinRate").value,1000),
+    minWithdraw:num(document.getElementById("s_minWithdraw").value,300),
+    dailyCap:num(document.getElementById("s_dailyCap").value,40),
+    adReward:num(document.getElementById("s_adReward").value,10),
+    videoReward:num(document.getElementById("s_videoReward").value,50),
+    ludoEntry:num(document.getElementById("s_ludoEntry").value,50),
+    ludoWin:num(document.getElementById("s_ludoWin").value,70),
+    freeChipsDaily:num(document.getElementById("s_freeChipsDaily").value,200),
+    spinPrizes:{ coins:parseList(document.getElementById("s_spinCoins").value,[5,10,15,20]),
+      chips:parseList(document.getElementById("s_spinChips").value,[50,100]),
+      pkr:parseList(document.getElementById("s_spinPkr").value,[1,2]) },
+    maintenance:document.getElementById("s_maintenance").checked,
+    maintenanceMsg:document.getElementById("s_maintenanceMsg").value };
+  if(await jpatch("settings", val)){ toast("Settings save ho gayi ✓"); S.settings=Object.assign({}, S.settings, val); }
+  else toast("Save nahi hui");
+}
+
+/* ---------- PIN CHANGE ---------- */
+async function changePin(){
+  var oldP=document.getElementById("p_old").value.trim();
+  var newP=document.getElementById("p_new").value.trim();
+  if(!/^\d{4}$/.test(newP)){ toast("Naya PIN 4 hindse ka hona chahiye"); return; }
+  var cur = await jget("admin/pin");
+  if(String(cur)!==oldP){ toast("Purana PIN ghalat hai"); return; }
+  if(await jput("admin/pin", newP)){ toast("PIN badal gaya ✓"); document.getElementById("p_old").value=""; document.getElementById("p_new").value=""; }
+  else toast("PIN nahi badla");
+}
+
+/* ---------- VIDEOS ---------- */
+function resetVideoForm(){
+  document.getElementById("v_editId").value="";
+  document.getElementById("v_title").value="";
+  document.getElementById("v_url").value="";
+  document.getElementById("v_reward").value="50";
+  document.getElementById("videoFormTitle").textContent="Nayi Video Add Karo";
+  document.getElementById("v_hint").textContent="";
+}
+function renderVideos(){
+  var vs=listOf(S.videos);
+  if(!vs.length){ document.getElementById("videoList").innerHTML='<div class="empty">Abhi koi video nahi hai.</div>'; return; }
+  document.getElementById("videoList").innerHTML = vs.map(function(v){
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:10px 0">'+
+      '<span><img src="https://i.ytimg.com/vi/'+esc(v.youtubeId)+'/hqdefault.jpg" style="width:86px;height:60px;object-fit:cover;border-radius:10px;vertical-align:middle;margin-right:10px">'+
+      '<b>'+esc(v.title)+'</b> <span class="muted">+'+num(v.reward,50)+' coins</span></span>'+
+      '<span class="row"><span class="badge '+(v.active!==false?"ok":"grey")+'">'+(v.active!==false?"Active":"Band")+'</span>'+
+      '<button class="ghost" onclick="toggleVideo(\''+v._id+'\','+(v.active!==false?0:1)+')">'+(v.active!==false?"Band Karo":"Chaloo Karo")+'</button>'+
+      '<button class="ghost" onclick="editVideo(\''+v._id+'\')">Edit</button>'+
+      '<button class="danger" onclick="deleteVideo(\''+v._id+'\')">Delete</button></span></div>';
+  }).join("");
+}
+async function saveVideo(){
+  var title=document.getElementById("v_title").value.trim();
+  var id=ytId(document.getElementById("v_url").value);
+  var reward=num(document.getElementById("v_reward").value,50);
+  if(!title){ toast("Title daalo"); return; }
+  if(!id){ toast("Sahi YouTube link ya ID daalo"); document.getElementById("v_hint").textContent="ID nahi mili. Poora link paste karo (watch?v=… / youtu.be/… / shorts/…)."; return; }
+  var editId=document.getElementById("v_editId").value;
+  var val={ title:title, youtubeId:id, reward:reward, active:true, createdAt:Date.now() };
+  var ok;
+  if(editId){ var old=S.videos[editId]||{}; val.active = old.active!==false; val.createdAt = old.createdAt||Date.now(); ok=await jput("videos/"+editId, val); }
+  else { var nid="video"+Date.now(); ok=await jput("videos/"+nid, val); }
+  if(ok){ toast("Video save ho gayi ✓"); resetVideoForm(); refreshAll(); }
+  else toast("Save nahi hui");
+}
+function editVideo(id){
+  var v=S.videos[id]; if(!v) return;
+  document.getElementById("v_editId").value=id;
+  document.getElementById("v_title").value=v.title||"";
+  document.getElementById("v_url").value=v.youtubeId||"";
+  document.getElementById("v_reward").value=num(v.reward,50);
+  document.getElementById("videoFormTitle").textContent="Video Edit Karo";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function toggleVideo(id, on){
+  if(await jpatch("videos/"+id, {active:!!on})){ toast(on?"Video chalu ho gayi":"Video band ho gayi"); refreshAll(); }
+}
+async function deleteVideo(id){
+  if(!confirm("Ye video pakki delete karni hai?")) return;
+  if(await jdel("videos/"+id)){ toast("Video delete ho gayi"); refreshAll(); }
+}
+
+/* ---------- WITHDRAWALS ---------- */
+function setWFilter(f){ wFilter=f; renderWithdrawals(); }
+function renderWithdrawals(){
+  var wds=listOf(S.withdrawals).sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});
+  if(wFilter!=="all") wds=wds.filter(function(w){return w.status===wFilter;});
+  if(!wds.length){ document.getElementById("wList").innerHTML='<div class="empty">Is filter mein koi withdrawal nahi hai.</div>'; return; }
+  document.getElementById("wList").innerHTML = wds.map(function(w){
+    return '<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>'+esc(w.username||w.uid)+'</b><span class="badge '+(w.status==="pending"?"warn":w.status==="approved"?"ok":"bad")+'">'+esc(w.status)+'</span></div>'+
+    '<p class="muted" style="margin-top:6px">Rs '+esc(w.amountRs)+' · '+esc(w.coins)+' coins · '+esc(w.method||"")+' · '+esc(w.number||"")+' · '+fmtDate(w.createdAt)+'</p>'+
+    (w.status==="pending"?'<div class="row" style="margin-top:10px"><button class="btn small" onclick="setWStatus(\''+w._id+'\',\'approved\')">✓ Approve</button><button class="danger" onclick="setWStatus(\''+w._id+'\',\'rejected\')">✕ Reject</button></div>':"")+'</div>';
+  }).join("");
+}
+async function setWStatus(id, st){
+  if(await jpatch("withdrawals/"+id, {status:st})){ toast(st==="approved"?"Withdrawal approve ho gayi":"Withdrawal reject ho gayi"); refreshAll(); }
+}
+
+/* ---------- COUPONS ---------- */
+async function saveCoupon(){
+  var code=(document.getElementById("c_code").value||"").trim().toUpperCase();
+  var type=document.getElementById("c_type").value;
+  var value=num(document.getElementById("c_value").value,0);
+  var maxUses=num(document.getElementById("c_maxUses").value,100);
+  if(!code){ toast("Coupon code daalo"); return; }
+  if(!value){ toast("Value daalo"); return; }
+  var ok=await jput("coupons/"+encodeURIComponent(code), {type:type, value:value, maxUses:maxUses, usedCount:0, active:true});
+  if(ok){ toast("Coupon ban gaya ✓"); document.getElementById("c_code").value=""; refreshAll(); }
+  else toast("Coupon nahi bana");
+}
+function renderCoupons(){
+  var cs=listOf(S.coupons);
+  if(!cs.length){ document.getElementById("cList").innerHTML='<div class="empty">Abhi koi coupon nahi hai.</div>'; return; }
+  document.getElementById("cList").innerHTML = cs.map(function(c){
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:10px 0"><span><b>'+esc(c._id)+'</b> — '+esc(c.value)+' '+esc(c.type)+' · '+num(c.usedCount,0)+'/'+num(c.maxUses,0)+' uses</span>'+
+    '<span class="row"><span class="badge '+(c.active!==false?"ok":"grey")+'">'+(c.active!==false?"Active":"Band")+'</span>'+
+    '<button class="ghost" onclick="toggleCoupon(\''+esc(c._id)+'\','+(c.active!==false?0:1)+')">'+(c.active!==false?"Band Karo":"Chaloo Karo")+'</button></span></div>';
+  }).join("");
+}
+async function toggleCoupon(code, on){
+  if(await jpatch("coupons/"+encodeURIComponent(code), {active:!!on})){ toast(on?"Coupon chalu":"Coupon band"); refreshAll(); }
+}
+
+/* ---------- GAMES & HOME ---------- */
+var HOME_LABELS={vip:"VIP Pass",shop:"Shop",spin:"Daily Spin",checkin:"Check-in",games:"Games Grid",missionsRow:"Missions Row",freeChipsRow:"Free Chips Row",inviteRow:"Invite Row",walletRow:"Wallet Row"};
+var GAME_LABELS={ludo:"Ludo",mines:"Mines Hint Hunt",tictactoe:"Tic-Tac-Toe",snake:"Snake",memory:"Memory Match","2048":"2048"};
+var NAV_LABELS={home:"Home",missions:"Missions",freechips:"Free Chips",videos:"Videos",invite:"Invite",wallet:"Wallet"};
+var MS_EDIT=[];
+
+function asArr(v){
+  if(Array.isArray(v)) return v.slice();
+  if(v && typeof v==="object") return Object.keys(v).sort(function(a,b){return num(a,0)-num(b,0);}).map(function(k){return v[k];});
+  return [];
+}
+function orderRows(arr, labels, key){
+  if(!arr.length) return '<div class="empty">Koi item nahi.</div>';
+  return arr.map(function(id,i){
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:8px 0"><b>'+esc(labels[id]||id)+'</b>'+
+    '<span class="row"><button class="ghost" onclick="moveOrder(\''+key+'\','+i+',-1)" '+(i===0?"disabled":"")+'>↑ Upar</button>'+
+    '<button class="ghost" onclick="moveOrder(\''+key+'\','+i+',1)" '+(i===arr.length-1?"disabled":"")+'>↓ Neeche</button></span></div>';
+  }).join("");
+}
+async function moveOrder(key, idx, dir){
+  var s=S.settings||{};
+  var arr=asArr(s[key]); if(!arr.length) arr=DEFAULT_SETTINGS[key].slice();
+  var j=idx+dir; if(j<0||j>=arr.length) return;
+  var t=arr[idx]; arr[idx]=arr[j]; arr[j]=t;
+  if(await jput("settings/"+key, arr)){ s[key]=arr; toast("Order save ho gaya ✓"); renderGamesHome(); }
+  else toast("Save nahi hua");
+}
+async function toggleGame(id, on){
+  var p={}; p[id]=!!on;
+  if(await jpatch("settings/gamesEnabled", p)){ (S.settings.gamesEnabled||(S.settings.gamesEnabled={}))[id]=!!on; toast((GAME_LABELS[id]||id)+(on?" chalu":" band")+" ho gaya"); renderGamesHome(); }
+  else toast("Save nahi hua");
+}
+function renderGamesHome(){
+  var s=S.settings||{};
+  var home=asArr(s.homeOrder); if(!home.length) home=DEFAULT_SETTINGS.homeOrder.slice();
+  document.getElementById("ghHome").innerHTML=orderRows(home, HOME_LABELS, "homeOrder");
+  var games=asArr(s.gamesOrder); if(!games.length) games=DEFAULT_SETTINGS.gamesOrder.slice();
+  var en=s.gamesEnabled||{};
+  document.getElementById("ghGames").innerHTML=games.map(function(id,i){
+    var on = en[id]===undefined ? true : !!en[id];
+    return '<div class="row" style="justify-content:space-between;border-bottom:1px solid #243450;padding:8px 0"><span><label style="display:inline"><input type="checkbox" style="width:auto" '+(on?"checked":"")+' onclick="toggleGame(\''+id+'\',this.checked)"> <b>'+esc(GAME_LABELS[id]||id)+'</b></label></span>'+
+    '<span class="row"><button class="ghost" onclick="moveOrder(\'gamesOrder\','+i+',-1)" '+(i===0?"disabled":"")+'>↑</button>'+
+    '<button class="ghost" onclick="moveOrder(\'gamesOrder\','+i+',1)" '+(i===games.length-1?"disabled":"")+'>↓</button></span></div>';
+  }).join("");
+  var nav=asArr(s.navOrder); if(!nav.length) nav=DEFAULT_SETTINGS.navOrder.slice();
+  document.getElementById("ghNav").innerHTML=orderRows(nav, NAV_LABELS, "navOrder");
+  var vip=s.vip||{};
+  document.getElementById("v_priceRs").value=num(vip.priceRs,500);
+  document.getElementById("v_chipsGrant").value=num(vip.chipsGrant,1000);
+  document.getElementById("v_enabled").checked = vip.enabled!==false;
+  var sp=s.spin||{};
+  document.getElementById("sp_free").value=num(sp.freeSpinsPerDay,1);
+  document.getElementById("sp_interval").value=num(sp.freeIntervalHours,24);
+  var ci=s.checkin||{};
+  document.getElementById("ci_rewards").value=(asArr(ci.dayRewards).length?asArr(ci.dayRewards):DEFAULT_SETTINGS.checkin.dayRewards.slice()).join(",");
+  var mn=s.mines||{};
+  document.getElementById("mn_boxes").value=num(mn.boxes,30);
+  document.getElementById("mn_mines").value=num(mn.minesCount,5);
+  document.getElementById("mn_opens").value=num(mn.opensAllowed,5);
+  document.getElementById("mn_win").value=num(mn.winReward,10);
+  document.getElementById("mn_loss").value=num(mn.failEnergyLoss,1);
+  document.getElementById("mn_maxEn").value=num(mn.maxEnergy,10);
+  document.getElementById("mn_chipsPer").value=num(mn.chipsPerEnergy,50);
+  var lu=s.ludo||{};
+  document.getElementById("lu_freeWin").value=num(lu.freeWinCoins,20);
+  document.getElementById("lu_entry").value=num(lu.entryRs,50);
+  document.getElementById("lu_win").value=num(lu.winRs,70);
+  renderLudoSkins(asArr(lu.skins).length?asArr(lu.skins):DEFAULT_SETTINGS.ludo.skins);
+  var iv=s.invite||{};
+  document.getElementById("iv_referrer").value=num(iv.referrerBonus,200);
+  document.getElementById("iv_referee").value=num(iv.refereeBonus,50);
+  var wa=s.wallet||{};
+  document.getElementById("wa_methods").value=(asArr(wa.methods).length?asArr(wa.methods):["JazzCash","Easypaisa"]).join(",");
+  var ad=s.ads||{};
+  document.getElementById("ad_banner").checked = ad.bannerEnabled!==false;
+  document.getElementById("ad_rewarded").checked = ad.rewardedEnabled!==false;
+  document.getElementById("ad_interval").value=num(ad.interstitialIntervalSec,120);
+  MS_EDIT = asArr(s.missions).length ? asArr(s.missions).map(function(m){ return {id:m.id||("m"+Date.now()+Math.random()), title:m.title||"", reward:num(m.reward,0), rewardType:m.rewardType||"coins"}; }) : DEFAULT_SETTINGS.missions.map(function(m){ return {id:m.id, title:m.title, reward:m.reward, rewardType:m.rewardType}; });
+  renderMissions();
+}
+function renderLudoSkins(skins){
+  document.getElementById("luSkins").innerHTML=skins.map(function(sk,i){
+    var isRs = sk.costRs!==undefined && sk.costRs!==null;
+    return '<div class="skinrow row" data-id="'+esc(sk.id||("skin"+i))+'" style="border-bottom:1px solid #243450;padding:8px 0">'+
+    '<input class="sk-name" value="'+esc(sk.name||"")+'" style="flex:2" placeholder="Skin naam">'+
+    '<input class="sk-cost" type="number" value="'+(isRs?num(sk.costRs,0):num(sk.costChips,0))+'" style="flex:1" placeholder="Cost">'+
+    '<select class="sk-type" style="flex:1"><option value="chips" '+(isRs?"":"selected")+'>Chips</option><option value="pkr" '+(isRs?"selected":"")+'>Rs</option></select></div>';
+  }).join("");
+}
+function renderMissions(){
+  document.getElementById("msList").innerHTML=MS_EDIT.map(function(m,i){
+    return '<div class="msrow row" style="border-bottom:1px solid #243450;padding:8px 0">'+
+    '<input class="ms-title" value="'+esc(m.title||"")+'" style="flex:3" placeholder="Mission title">'+
+    '<input class="ms-reward" type="number" value="'+num(m.reward,0)+'" style="flex:1" placeholder="Reward">'+
+    '<select class="ms-type" style="flex:1"><option value="coins" '+(m.rewardType==="chips"?"":"selected")+'>Coins</option><option value="chips" '+(m.rewardType==="chips"?"selected":"")+'>Chips</option></select></div>';
+  }).join("") || '<div class="empty">Koi mission nahi — neeche se nayi add karo.</div>';
+}
+function addMissionRow(){ MS_EDIT.push({id:"m"+Date.now(), title:"", reward:10, rewardType:"coins"}); renderMissions(); }
+async function saveVip(){
+  var val={vip:{priceRs:num(document.getElementById("v_priceRs").value,500), chipsGrant:num(document.getElementById("v_chipsGrant").value,1000), enabled:document.getElementById("v_enabled").checked}};
+  if(await jpatch("settings", val)){ toast("VIP save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveSpin(){
+  var val={spin:{freeSpinsPerDay:num(document.getElementById("sp_free").value,1), freeIntervalHours:num(document.getElementById("sp_interval").value,24)}};
+  if(await jpatch("settings", val)){ toast("Spin save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveCheckin(){
+  var arr=parseList(document.getElementById("ci_rewards").value, DEFAULT_SETTINGS.checkin.dayRewards.slice());
+  if(await jpatch("settings", {checkin:{dayRewards:arr}})){ toast("Check-in save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveMines(){
+  var val={mines:{boxes:num(document.getElementById("mn_boxes").value,30), minesCount:num(document.getElementById("mn_mines").value,5), opensAllowed:num(document.getElementById("mn_opens").value,5), winReward:num(document.getElementById("mn_win").value,10), failEnergyLoss:num(document.getElementById("mn_loss").value,1), maxEnergy:num(document.getElementById("mn_maxEn").value,10), chipsPerEnergy:num(document.getElementById("mn_chipsPer").value,50)}};
+  if(await jpatch("settings", val)){ toast("Mines save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveLudo(){
+  var skins=[];
+  document.querySelectorAll("#luSkins .skinrow").forEach(function(row){
+    var sk={id:row.getAttribute("data-id"), name:row.querySelector(".sk-name").value.trim()||"Skin"};
+    if(row.querySelector(".sk-type").value==="pkr") sk.costRs=num(row.querySelector(".sk-cost").value,0);
+    else sk.costChips=num(row.querySelector(".sk-cost").value,0);
+    skins.push(sk);
+  });
+  var entry=num(document.getElementById("lu_entry").value,50), win=num(document.getElementById("lu_win").value,70);
+  var val={ludo:{freeWinCoins:num(document.getElementById("lu_freeWin").value,20), entryRs:entry, winRs:win, skins:skins}, ludoEntry:entry, ludoWin:win};
+  if(await jpatch("settings", val)){ toast("Ludo save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveMissions(){
+  var rows=[];
+  document.querySelectorAll("#msList .msrow").forEach(function(row, i){
+    var t=row.querySelector(".ms-title").value.trim();
+    if(!t) return;
+    rows.push({id:MS_EDIT[i]?MS_EDIT[i].id:("m"+Date.now()+i), title:t, reward:num(row.querySelector(".ms-reward").value,0), rewardType:row.querySelector(".ms-type").value});
+  });
+  if(await jput("settings/missions", rows)){ toast("Missions save ho gayi ✓"); refreshAll(); } else toast("Save nahi hui");
+}
+async function saveInvite(){
+  var val={invite:{referrerBonus:num(document.getElementById("iv_referrer").value,200), refereeBonus:num(document.getElementById("iv_referee").value,50)}};
+  if(await jpatch("settings", val)){ toast("Invite save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveWallet(){
+  var methods=document.getElementById("wa_methods").value.split(",").map(function(x){return x.trim();}).filter(function(x){return x;});
+  if(!methods.length) methods=["JazzCash","Easypaisa"];
+  if(await jpatch("settings", {wallet:{methods:methods}})){ toast("Wallet save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+async function saveAds(){
+  var val={ads:{bannerEnabled:document.getElementById("ad_banner").checked, interstitialIntervalSec:num(document.getElementById("ad_interval").value,120), rewardedEnabled:document.getElementById("ad_rewarded").checked}};
+  if(await jpatch("settings", val)){ toast("Ads save ho gaye ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+function renderAppSec(){
+  var s=S.settings||{}; var ap=s.app||{};
+  document.getElementById("ap_name").value=ap.appName||DEFAULT_SETTINGS.app.appName;
+  document.getElementById("ap_email").value=ap.contactEmail||DEFAULT_SETTINGS.app.contactEmail;
+  document.getElementById("ap_announcement").value=ap.announcement||"";
+}
+async function saveAppSec(){
+  var val={app:{appName:document.getElementById("ap_name").value.trim()||DEFAULT_SETTINGS.app.appName, contactEmail:document.getElementById("ap_email").value.trim()||DEFAULT_SETTINGS.app.contactEmail, announcement:document.getElementById("ap_announcement").value}};
+  if(await jpatch("settings", val)){ toast("App info save ho gaya ✓"); refreshAll(); } else toast("Save nahi hua");
+}
+
+/* ---------- START ---------- */
+if(sessionStorage.getItem("rg_admin_ok")==="1"){
+  document.getElementById("gate").style.display="none";
+  afterUnlock();
+} else {
+  initGate();
+}
+</script>
+</body>
+</html>
